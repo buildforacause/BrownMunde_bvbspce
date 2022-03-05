@@ -22,11 +22,60 @@ login_manager.init_app(app)
 
 
 class User(UserMixin, db.Model):
-    tablename = "users"
+    __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
     name = db.Column(db.String(100))
+    posts = relationship("BlogPost", back_populates="author")
+    comments = relationship("Comment", back_populates="comment_author")
+    lostfound = relationship("LostFound", back_populates="author")
+    order = relationship("Order", back_populates="author")
+
+
+class BlogPost(db.Model):
+    __tablename__ = "blog_posts"
+    id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    author = db.Column(db.String(250), nullable=False)
+    title = db.Column(db.String(250), unique=True, nullable=False)
+    subtitle = db.Column(db.String(250), nullable=False)
+    date = db.Column(db.String(250), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    img_url = db.Column(db.String(250), nullable=False)
+    author = relationship("User", back_populates="posts")
+    comments = relationship("Comment", back_populates="parent_post")
+
+
+class Comment(db.Model):
+    __tablename__ = "comments"
+    id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    post_id = db.Column(db.Integer, db.ForeignKey("blog_posts.id"))
+    comment = db.Column(db.Text, nullable=False)
+    comment_author = relationship("User", back_populates="comments")
+    parent_post = relationship("BlogPost", back_populates="comments")
+
+
+class LostFound(db.Model):
+    __tablename__ = "lostfound"
+    id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    user_choice = db.Column(db.Text, nullable=False)
+    item_desc = db.Column(db.Text, nullable=False)
+    image = db.Column(db.String)
+    author = relationship("User", back_populates="lostfound")
+
+
+class Order(db.Model):
+    __tablename__ = "order"
+    id = db.Column(db.Integer, primary_key=True)
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    order_desc = db.Column(db.Text, nullable=False)
+    author = relationship("User", back_populates="order")
+
+
+db.create_all()
 
 
 @login_manager.user_loader
@@ -82,6 +131,49 @@ def login():
         login_user(user)
         return redirect(url_for('get_all_posts'))
     return render_template("login.html", form=form)
+
+
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('get_all_posts'))
+
+
+@app.route("/post/<int:post_id>", methods=["GET", "POST"])
+def show_post(post_id):
+    if current_user.is_authenticated:
+        requested_post = BlogPost.query.get(post_id)
+        form = CommentForm()
+        if form.validate_on_submit():
+            comment = form.comment.data
+            new_comment = Comment(
+                comment=comment,
+                comment_author=current_user,
+                parent_post=requested_post
+            )
+            db.session.add(new_comment)
+            db.session.commit()
+        return render_template("post.html", post=requested_post, form=form)
+
+    return redirect(url_for('login'))
+
+
+@app.route("/new-post", methods=["GET", "POST"])
+def add_new_post():
+    form = CreateEventForm()
+    if form.validate_on_submit():
+        new_post = BlogPost(
+            title=form.title.data,
+            subtitle=form.subtitle.data,
+            body=form.body.data,
+            img_url=form.img_url.data,
+            author=current_user,
+            date=date.today().strftime("%B %d, %Y")
+        )
+        db.session.add(new_post)
+        db.session.commit()
+        return redirect(url_for("get_all_posts"))
+    return render_template("make-post.html", form=form)
 
 
 if __name__ == '__main__':
