@@ -50,11 +50,17 @@
             <a class="nav-link" href="{{ url_for('logout') }}">Log Out</a>
           </li>
           {% endif %}
+          {% if current_user.id == 1: %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('view_orders') }}">View Orders</a>
+          </li>
+          {% else: %}
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('canteen') }}">Canteen</a>
           </li>
+          {% endif %}
           <li class="nav-item">
-            <a class="nav-link" href="{{ url_for('lost_found') }}">Lost/Found</a>
+            <a class="nav-link" href="{{ url_for('get_all_items') }}">Lost/Found</a>
           </li>
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('contact') }}">Grievances</a>

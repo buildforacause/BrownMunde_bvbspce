@@ -26,11 +26,11 @@
       <div class="col-lg-8 col-md-10 mx-auto">
         {% for order in orders %}
         <div class="post-preview">
-            <h2 class="post-title">
+            <h1 class="post-title">
               {{order.author.name}}
-            </h2>
+            </h1>
             <h3 class="post-subtitle">
-              {{order.order_desc}}
+              {{order.order_desc|safe}}
             </h3>
           <p class="post-meta">
             <a href="{{url_for('delete_order', order_id=order.id) }}">✘</a>
