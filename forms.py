@@ -15,41 +15,41 @@ class CreateEventForm(FlaskForm):
 
 class RegisterForm(FlaskForm):
     name = StringField("Your Name", validators=[DataRequired()])
-    email = StringField("email", validators=[DataRequired()])
-    password = PasswordField("password", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired()])
+    password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Register")
 
 
 class LoginForm(FlaskForm):
-    email = StringField("email", validators=[DataRequired()])
-    password = PasswordField("password", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired()])
+    password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Login")
 
 
 class CommentForm(FlaskForm):
-    comment = CKEditorField("your views about the event", validators=[DataRequired()])
-    submit = SubmitField("comment")
+    comment = CKEditorField("Your views about this", validators=[DataRequired()])
+    submit = SubmitField("Comment")
 
 
 class LostFoundForm(FlaskForm):
-    choices = ["lost", "found"]
-    user_choice = SelectField("lost or found", choices=choices, validators=[DataRequired()])
-    name = StringField("your name", validators=[DataRequired()])
-    item_desc = CKEditorField(f"tell something about the item , enter your desired way of contact", validators=[DataRequired()])
+    choices = ["Lost", "Found"]
+    user_choice = SelectField("Choose one", choices=choices, validators=[DataRequired()])
+    title = StringField("Title", validators=[DataRequired()])
+    item_desc = CKEditorField(f"Tell something about the item , enter your desired way of contact", validators=[DataRequired()])
     submit = SubmitField("Post")
 
 
 class GrievanceForm(FlaskForm):
-    choices = ["cleanliness", "other"]
-    user_choice = SelectField("type of issue", choices=choices, validators=[DataRequired()])
-    name = StringField("your name", validators=[DataRequired()])
-    email = StringField("email", validators=[DataRequired()])
-    phone_no = StringField("phone number")
-    grievance = CKEditorField("tell us about your issue", validators=[DataRequired()])
+    choices = ["Cleanliness", "Other"]
+    user_choice = SelectField("Type of issue", choices=choices, validators=[DataRequired()])
+    title = StringField("Title", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired()])
+    phone_no = StringField("Phone number")
+    grievance = CKEditorField("Tell us about your issue", validators=[DataRequired()])
     submit = SubmitField("Post")
 
 
 class CanteenForm(FlaskForm):
-    name = StringField("your name", validators=[DataRequired()])
-    order = CKEditorField("enter your order in the form 'quantity' x 'menu item name' ", validators=[DataRequired()])
+    name = StringField("Your name", validators=[DataRequired()])
+    order = CKEditorField("Enter your order in the form 'quantity' x 'menu item name' ", validators=[DataRequired()])
     submit = SubmitField("Order")
