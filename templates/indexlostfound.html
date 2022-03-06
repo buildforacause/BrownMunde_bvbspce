@@ -1,7 +1,6 @@
 {% include "header.html" %}
-
   <!-- Page Header -->
-  <header class="masthead" style="background-image: url('https://images.unsplash.com/photo-1470092306007-055b6797ca72?ixlib=rb-1.2.1&auto=format&fit=crop&w=668&q=80')">
+  <header class="masthead" style="background-image: url('{{ url_for('static', filename='img/lost.jpg') }}')">
     <div class="overlay"></div>
     <div class="container">
       <div class="row">
@@ -19,7 +18,7 @@
   <div class="container">
     <div class="row">
       <div class="col-lg-8 col-md-10 mx-auto">
-        <h2 class="post-title">Lost Items:</h2>
+        <h2 class="post-title"><u>Lost Items:</u></h2>
         <hr>
         {% for post in all_posts %}
         {% if post.user_choice == 'Lost': %}
@@ -42,7 +41,7 @@
         <hr>
         {% endif %}
         {% endfor %}
-        <h2 class="post-title">Found Items:</h2>
+        <h2 class="post-title"><u>Found Items:</u></h2>
         <hr>
         {% for post in all_posts %}
         {% if not post.user_choice == 'Lost': %}
@@ -52,7 +51,7 @@
               {{post.title}}
             </h2>
             <h3 class="post-subtitle">
-              {{post.item_desc[:20]|safe}}...
+              {{post.item_desc[:30]|safe}}...
             </h3>
           </a>
           <p class="post-meta">Posted by
