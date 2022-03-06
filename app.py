@@ -5,14 +5,15 @@ from datetime import date
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import relationship
-from flask_login import UserMixin, login_user, LoginManager, login_required, current_user, logout_user
+from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user
 from forms import CreateEventForm, RegisterForm, LoginForm, CommentForm, LostFoundForm, GrievanceForm, CanteenForm
 from flask_gravatar import Gravatar
-from flask import abort
 import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
-my_email = "pythonisez@yahoo.com"
-password = "jdqsxomgcvrttjvi"
+my_email = "yahoo mail id goes here"
+password = "yahoo app password"
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
@@ -108,6 +109,7 @@ class Order(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     order_desc = db.Column(db.Text, nullable=False)
     author = relationship("User", back_populates="order")
+    order_id = db.Column(db.Integer, nullable=False)
 
 
 @app.route('/')
@@ -124,7 +126,7 @@ def register():
         password = form.password.data
         user = User.query.filter_by(email=email).first()
         if user:
-            flash('Email already used')
+            flash("You've already signed up with that email, log in instead!", "error")
             return redirect(url_for('login'))
         hashed_salted_psw = generate_password_hash(
             password,
@@ -151,10 +153,10 @@ def login():
         password = form.password.data
         user = User.query.filter_by(email=email).first()
         if not user:
-            flash('email or password incorrect')
+            flash("That email does not exist, please try again.", "error")
             return redirect(url_for('login', form=form))
         elif user and not check_password_hash(user.password, password):
-            flash('email or password incorrect')
+            flash('Password incorrect, please try again.', 'error')
             return redirect(url_for('login', form=form))
         login_user(user)
         return redirect(url_for('get_all_posts'))
@@ -169,9 +171,9 @@ def logout():
 
 @app.route("/post/<int:post_id>", methods=["GET", "POST"])
 def show_post(post_id):
+    requested_post = BlogPost.query.get(post_id)
+    form = CommentForm()
     if current_user.is_authenticated:
-        requested_post = BlogPost.query.get(post_id)
-        form = CommentForm()
         if form.validate_on_submit():
             comment = form.comment.data
             new_comment = Comment(
@@ -182,18 +184,15 @@ def show_post(post_id):
             db.session.add(new_comment)
             db.session.commit()
         return render_template("post.html", post=requested_post, form=form)
-
-    return redirect(url_for('login'))
+    return render_template("post.html", post=requested_post, form=form)
 
 
 @app.route("/grievance", methods=["GET", "POST"])
 def contact():
-    # tomorrow
     if current_user.is_authenticated:
         form = GrievanceForm()
         if form.validate_on_submit():
             user_choice = form.user_choice.data
-            name = form.name.data
             email = form.email.data
             phone_no = form.phone_no.data
             grievance = form.grievance.data
@@ -201,17 +200,19 @@ def contact():
                 reciever = "aniruddha.fale@gmail.com"
             else:
                 reciever = "sidsinghcs@gmail.com"
-            connection = smtplib.SMTP("smtp.mail.yahoo.com")
-            connection.starttls()
-            connection.login(user=my_email, password=password)
-            connection.sendmail(
-                from_addr=my_email,
-                to_addrs=reciever,
-                msg=f"Subject:{user_choice} Issue\n\nMy name is {name} and my issue is {grievance}\nYou can contact me"
-                    f"through the below given details\nPhone No- {phone_no}\nEmail- {email}"
-            )
-            connection.close()
+            with smtplib.SMTP("smtp.mail.yahoo.com") as connection:
+                connection.starttls()
+                connection.ehlo()
+                connection.login(user=my_email, password=password)
+                connection.sendmail(
+                    from_addr=my_email,
+                    to_addrs=reciever,
+                    msg=f"Subject:{user_choice} Issue\n\nMy name is {current_user.name} and my issue is {grievance}\nYou can contact me"
+                        f" through the below given details:\nPhone No- {phone_no}\nEmail- {email}"
+                )
+            flash("Response has been submitted successfully!", "success")
     else:
+        flash("You need to login first!")
         return redirect("/login")
     return render_template("contact.html", form=form)
 
@@ -267,15 +268,171 @@ def delete_post(post_id):
 @app.route("/canteen_admin/<int:order_id>")
 def delete_order(order_id):
     order_to_delete = Order.query.get(order_id)
-    connection = smtplib.SMTP("smtp.mail.yahoo.com")
-    connection.starttls()
-    connection.login(user=my_email, password=password)
-    connection.sendmail(
-        from_addr=my_email,
-        to_addrs=order_to_delete.author.email,
-        msg=f"Subject:Order has been prepared\n\n you may collect your order now the bill is attached below"
-    )
-    connection.close()
+    with smtplib.SMTP("smtp.mail.yahoo.com") as connection:
+        message = """\
+        <html>
+        	<head>
+        		<meta charset="utf-8" />
+        		<title></title>
+        		<style>
+        			.invoice-box {
+        				max-width: 800px;
+        				margin: auto;
+        				padding: 30px;
+        				border: 1px solid #eee;
+        				box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+        				font-size: 16px;
+        				line-height: 24px;
+        				font-family: 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+        				color: #555;
+        			}
+        			.invoice-box table {
+        				width: 100%;
+        				line-height: inherit;
+        				text-align: left;
+        			}
+        			.invoice-box table td {
+        				padding: 5px;
+        				vertical-align: top;
+        			}
+        			.invoice-box table tr td:nth-child(2) {
+        				text-align: right;
+        			}
+        			.invoice-box table tr.top table td {
+        				padding-bottom: 20px;
+        			}
+        			.invoice-box table tr.top table td.title {
+        				font-size: 45px;
+        				line-height: 45px;
+        				color: #333;
+        			}
+        			.invoice-box table tr.information table td {
+        				padding-bottom: 40px;
+        			}
+                  .idno{
+                  	font-weight: bold;
+                    font-size: 60px;
+                    padding-top:70px;
+                    text-align: center;
+                  }
+                  .invoiceid{
+                  	text-align: center;
+                  }
+        			.invoice-box table tr.heading td {
+        				background: #eee;
+        				border-bottom: 1px solid #ddd;
+        				font-weight: bold;
+        			}
+        			.invoice-box table tr.details td {
+        				padding-bottom: 20px;
+        			}
+        			.invoice-box table tr.item td {
+        				border-bottom: 1px solid #eee;
+        			}
+        			.invoice-box table tr.item.last td {
+        				border-bottom: none;
+        			}
+        			.invoice-box table tr.total td:nth-child(2) {
+        				border-top: 2px solid #eee;
+        				font-weight: bold;
+        			}
+        			@media only screen and (max-width: 600px) {
+        				.invoice-box table tr.top table td {
+        					width: 100%;
+        					display: block;
+        					text-align: center;
+        				}
+        				.invoice-box table tr.information table td {
+        					width: 100%;
+        					display: block;
+        					text-align: center;
+        				}
+        			}
+        			/** RTL **/
+        			.invoice-box.rtl {
+        				direction: rtl;
+        				font-family: Tahoma, 'Helvetica Neue', 'Helvetica', Helvetica, Arial, sans-serif;
+        			}
+        			.invoice-box.rtl table {
+        				text-align: right;
+        			}
+        			.invoice-box.rtl table tr td:nth-child(2) {
+        				text-align: left;
+        			}
+        		</style>
+        	</head>
+        	<body>
+        		<div class="invoice-box">
+        			<table cellpadding="0" cellspacing="0">
+        				<tr class="top">
+        					<td colspan="2">
+        						<table>
+        							<tr>
+        								<td class="title">
+        									<img src="https://png.pngtree.com/png-vector/20190830/ourmid/pngtree-crossed-spoon-and-fork-restaurant-and-food-logo-design-png-image_1716397.jpg" style="width: 100%; max-width: 300px" />
+        								</td>
+        								<td>
+                                          <table>
+                                            <tr class>
+                                              <td class="invoiceid">Invoice ID</td>
+                                            </tr>
+                                            <tr>
+                                              <td class="idno">""" + str(order_to_delete.order_id) + """</td>
+                                            </tr>
+                                          </table>
+        								</td>
+        							</tr>
+        						</table>
+        					</td>
+        				</tr>
+        				<tr class="information">
+        					<td colspan="2">
+        						<table>
+        							<tr>
+        								<td>
+        									Canteen<br />
+        									e-Campus<br />
+        									Thane 400607
+        								</td>
+        							<td>
+        									<br />
+        									<br />
+        									9372642011
+        								</td>
+        							</tr>
+        						</table>
+        					</td>
+        				</tr>
+        				<tr class="heading">
+        					<td>Payment Method</td>
+        				</tr>
+        				<tr class="details">
+        					<td>Offline</td>
+        				</tr>
+        				<tr class="heading">
+        					<td>Item</td>
+        				</tr>
+        				<tr class="items">
+        					<td>""" + order_to_delete.order_desc + """</td>
+        				</tr>
+        			</table>
+        		</div>
+        	</body>
+        </html>
+        """
+        connection.starttls()
+        connection.ehlo()
+        connection.login(user=my_email, password=password)
+        msg = MIMEMultipart("alternative")
+        msg.attach(MIMEText(message, 'html'))
+        msg['Subject'] = f'Order id {order_to_delete.order_id} has been prepared'
+        msg['From'] = my_email
+        msg['To'] = order_to_delete.author.email
+        connection.sendmail(
+            from_addr=my_email,
+            to_addrs=order_to_delete.author.email,
+            msg=msg.as_string()
+        )
     db.session.delete(order_to_delete)
     db.session.commit()
     return redirect(url_for('view_orders'))
@@ -283,18 +440,25 @@ def delete_order(order_id):
 
 @app.route("/canteen", methods=["GET", "POST"])
 def canteen():
+    with open("order.txt", "r") as file:
+        order_id = int(file.read())
     if current_user.is_authenticated:
         form = CanteenForm()
         if form.validate_on_submit():
             new_order = Order(
+                order_id=order_id,
                 author_id=current_user.id,
                 order_desc=form.order.data
             )
             db.session.add(new_order)
             db.session.commit()
+            order_id += 1
+            with open("order.txt", "w") as file:
+                file.write(str(order_id))
+            flash(f"Your order id {new_order.order_id} has been received and will be prepared soon!", "success")
             return redirect(url_for("canteen"))
-
     else:
+        flash("You need to login first!")
         return redirect("/login")
     return render_template("canteen.html", form=form)
 
