@@ -12,7 +12,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-my_email = "yahoo mail id goes here"
+my_email = "your yahoo mail"
 password = "yahoo app password"
 
 app = Flask(__name__)
