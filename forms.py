@@ -40,7 +40,7 @@ class LostFoundForm(FlaskForm):
 
 
 class GrievanceForm(FlaskForm):
-    choices = ["Cleanliness", "Other"]
+    choices = ["Cleanliness", "Fees", "Ragging", "Other"]
     user_choice = SelectField("Type of issue", choices=choices, validators=[DataRequired()])
     title = StringField("Title", validators=[DataRequired()])
     email = StringField("Email", validators=[DataRequired()])
